@@ -103,7 +103,8 @@ protected:
 
 // Implementation
 public:
-	inline UINT SetDCColors(CDC* dc, BYTE color, BOOL invirt = 0);
+	//inline UINT SetDCColors(CDC* dc, BYTE color, BOOL invirt = 0);
+    UINT SetDCColors(CDC* dc, BYTE color, BOOL invirt = 0);
 	void OnDisConnect();
 	void SetScrollBar();
 	virtual ~CTermView();

@@ -377,4 +377,19 @@ protected:
 
 extern CAppConfig AppConfig;
 
+// Separate config, plugin setting not save now.
+class CPluginConfig
+{
+public:
+    CPluginConfig();
+
+    // Baha Black List.
+    BYTE BahaBlackList;
+    BYTE BBLKeyword;
+    BYTE BBLAutoQuit;
+    BYTE BBLStyle;
+};
+
+extern CPluginConfig PluginConfig;
+
 #endif // !defined(AFX_APPCONFIG_H__14C7B573_F013_4BD6_8CD8_132DD4F5189F__INCLUDED_)

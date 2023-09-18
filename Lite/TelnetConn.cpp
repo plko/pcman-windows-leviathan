@@ -549,6 +549,9 @@ void CTelnetConn::OnText()
 	if (this == view->telnet)
 	{
 		view->HideCaret();
+        // NOTE: plugin update.
+        PluginBBL.update(this);
+        //
 		for (int i = first_line;i <= last_line;i++)
 		{
 			if (GetUpdateLine(i))
@@ -2241,4 +2244,420 @@ void CTelnetConn::CopyArticleComplete(bool cancel)
 	get_article_in_editor = false;
 	get_article_with_ansi = false;
 	downloaded_article.Empty();
+}
+
+// CPluginBBL
+CPluginBBL PluginBBL;
+CPluginBBL::CPluginBBL()
+{
+    resetAll();
+    validServerList.clear();
+    validServerList.push_back(std::string("bbs.gamer.com.tw"));
+    validServerList.push_back(std::string("35.201.128.35"));
+    validServerList.push_back(std::string("bahamut.org")); // reserved 
+}
+void CPluginBBL::resetAll()
+{
+    for (int i = 0; i < BUF_SIZE; ++i)
+    {
+        isHiding[i] = false;
+        lineTag[i] = "";
+        rawLine[i] = "";
+        quoAuthor[i] = "";
+        kwHiding[i] = false;
+    }
+    postAuthor = "";
+    hidingAllPost = false;
+    state = STATE_NONE;
+    idList.clear();
+    kwList.clear();
+}
+void CPluginBBL::update(CTelnetConn* tconn)
+{
+    if (PluginConfig.BahaBlackList == 0 &&
+        PluginConfig.BBLKeyword == 0)
+    {
+        return;
+    }
+    if (!chkServerValid((LPCTSTR)tconn->address.Server()))
+    {
+        return;
+    }
+
+    // NOTE: screen = LPSTR = char**
+    LPSTR *screen = tconn->screen;
+    long first = tconn->first_line;
+    long last = tconn->last_line;
+    // TODO: check active.
+
+    // state var.
+    char* strSearch = nullptr;
+    bool inBoard = false;
+    bool inReading = false;
+
+    // Check now state.
+    strSearch = strstr(screen[first + 2], inBoardChk1);
+    if (strSearch != nullptr)
+    {
+        inBoard = true;
+    }
+    strSearch = strstr(screen[first + 2], inBoardChk2);
+    if (strSearch != nullptr)
+    {
+        inBoard = true;
+    }
+    strSearch = strstr(screen[first + 23], inReadingChk1);
+    if (strSearch != nullptr)
+    {
+        inReading = true;
+    }
+    strSearch = strstr(screen[first + 23], inReadingChk2);
+    if (strSearch != nullptr)
+    {
+        inReading = true;
+    }
+
+    // Do update.
+    for (int i = first;i <= last;i++)
+    {
+        int si = i - first;
+        if (tconn->GetUpdateLine(i))
+        {
+            // clear tag.
+            lineTag[si] = "";
+            kwHiding[si] = false;
+            if (isHiding[si])
+            {
+                isHiding[si] = false;
+                tconn->SetUpdateWholeLine(i);
+            }
+        }
+    }
+
+    if (inBoard)
+    {
+        state = STATE_BOARD;
+        hidingAllPost = false;
+        //in board, only 4~23 line need to check (20 post)
+        for (int i = first + 3; i < first + 23; ++i)
+        {
+            // search kw. // title postion:screen[i]+32 46word max.
+            char title[47] = { 0 };
+            strncpy(title, screen[i] + 32, 46);
+            std::string titleStr(title);
+            for (int j = 0; j < kwList.size(); ++j)
+            {
+                if (titleStr.find(kwList[j]) != std::string::npos)
+                {
+                    kwHiding[i - (first)] = true;
+                    break;
+                }
+            }
+
+            //16 to next space.
+            char user[13] = { 0 };
+            strncpy(user, screen[i] + 16, 12);
+            strtok(user, " ");
+            if (user)
+                lineTag[i - (first)] = user;
+        }
+    }
+    else if (inReading)
+    {
+        state = STATE_READ;
+        bool enterNewPost = true;
+
+        strSearch = strstr(screen[first + 0], newPostChk1);
+        if (strSearch == nullptr)
+        {
+            enterNewPost = false;
+        }
+        strSearch = strstr(screen[first + 1], newPostChk2);
+        if (strSearch == nullptr)
+        {
+            enterNewPost = false;
+        }
+        strSearch = strstr(screen[first + 2], newPostChk3);
+        if (strSearch == nullptr)
+        {
+            enterNewPost = false;
+        }
+
+        if (enterNewPost)
+        {
+            hidingAllPost = false;
+            for (int i = 0; i < 10; ++i)
+            {
+                quoAuthor[i] = "";
+            }
+            //find title. screen[first_line+1] +7 // +11
+            char title[51] = { 0 };
+            strncpy(title, screen[first + 1] + 7, 50);
+            std::string titleStr(title);
+            for (int j = 0; j < kwList.size(); ++j)
+            {
+                if (titleStr.find(kwList[j]) != std::string::npos)
+                {
+                    //pluginBBL.kwHiding[i - (first_line)] = true;
+                    hidingAllPost = true;
+                    break;
+                }
+            }
+
+            // find author.
+            char user[13] = { 0 };
+            strncpy(user, screen[first] + 7, 12);
+            // filter.
+            for (int c = 0; c < 12; ++c)
+            {
+                char tmp = user[c];
+                if ((tmp >= '0' && tmp <= '9') ||
+                    (tmp >= 'A' && tmp <= 'Z') ||
+                    (tmp >= 'a' && tmp <= 'z'))
+                {
+                }
+                else
+                {
+                    user[c] = ' ';
+                }
+            }
+            strtok(user, " ");
+            postAuthor = user;
+
+            if (PluginConfig.BBLAutoQuit)
+            {
+                if (getInBlackList(user))
+                {
+                    char tmp[2] = "q";
+                    tconn->Send(tmp, 1);
+                }
+            }
+        }
+
+        // post author check.
+        for (int i = first;i <= last - 1; ++i)
+        {
+            if (hidingAllPost)
+            {
+                for (int l = 0; l < 23; ++l)
+                {
+                    kwHiding[l] = true;
+                }
+            }
+            int si = i - first;
+            strSearch = strstr(screen[i], postCheckStr1);
+            if (strSearch != nullptr)
+            {
+                continue;
+            }
+            /*strSearch = strstr(screen[i], postCheckStr2);
+            if (strSearch != nullptr)
+            {
+                continue;
+            }*/
+
+            int dep = 0;
+            const char *depStr = screen[i];
+
+            // check quo depth only when sure this is quo.
+            if (screen[i][0] == '>' && screen[i][1] == ' ')
+            {
+                while (depStr = strstr(depStr, "> "))
+                {
+                    dep++;
+                    depStr++; // step 1 char, prevent duplicate scan.
+                }
+            }
+            if (dep == 0)
+            {
+                lineTag[si] = postAuthor;
+            }
+        }
+
+        // find quo author.
+        for (int i = first;i <= last - 1; ++i)
+        {
+            int si = i - first;
+            strSearch = strstr(screen[i], postCheckStr3);
+            if (strSearch != nullptr)
+            {
+                strSearch = strstr(screen[i], postCheckStr4);
+                strSearch += 2;
+                char user[13] = { 0 };
+                strncpy(user, strSearch, 12);
+                strtok(user, " ");
+                //pluginBBL.postAuthor = user;
+                int dep = 0;
+                const char *depStr = screen[i];
+                if (screen[i][0] == '>' && screen[i][1] == ' ')
+                {
+                    while (depStr = strstr(depStr, "> "))
+                    {
+                        dep++;
+                        depStr++; // step 1 char, prevent duplicate scan.
+                    }
+                }
+                quoAuthor[dep] = user;
+            }
+        }
+
+        // quo Author check.
+        for (int i = first;i <= last - 1; ++i)
+        {
+            int si = i - first;
+            strSearch = strstr(screen[i], postCheckStr1);
+            if (strSearch != nullptr)
+            {
+                continue;
+            }
+            int dep = 0;
+            const char *depStr = screen[i];
+            if (screen[i][0] == '>' && screen[i][1] == ' ')
+            {
+                while (depStr = strstr(depStr, "> "))
+                {
+                    dep++;
+                    depStr++; // step 1 char, prevent duplicate scan.
+                }
+            }
+            if (dep > 0 && quoAuthor[dep - 1] != "")
+            {
+                lineTag[si] = quoAuthor[dep - 1];
+            }
+        }
+    }
+    else
+    {
+        state = STATE_NONE;
+    }
+}
+void CPluginBBL::render(CDC &dc, CTermView* view, int line, int drawy)
+{
+    // NOTE: drawy can calculated by line & view->top_margin
+    if (PluginConfig.BahaBlackList == 0 &&
+        PluginConfig.BBLKeyword == 0)
+    {
+        return;
+    }
+    if (!chkServerValid((LPCTSTR)view->telnet->address.Server()))
+    {
+        return;
+    }
+    if (!(getInBlackList(line - view->telnet->scroll_pos)))
+    {
+        return;
+    }
+
+    /*if (!(lineTag[line - view->telnet->scroll_pos] == "plko"))
+    {
+        return;
+    }*/
+
+    UINT draw_opt = view->SetDCColors(&dc, 7, 0);
+    CRect rc(view->left_margin, drawy, 0, drawy + view->lineh);
+    int dx = view->chw * 80;
+    rc.right = rc.left + dx;
+    // Set re-draw range. make it update.
+    if (isHiding[line - view->telnet->scroll_pos] == false)
+    {
+        ::InvalidateRect(view->m_hWnd, rc, FALSE);
+        //view->InvalidateRect(rc, FALSE);
+        isHiding[line - view->telnet->scroll_pos] = true;
+    }
+    char blankStr[81] = "                                                                                ";
+    if (state == STATE_BOARD)
+    {
+        // keep first 16 character
+        //telnet->screen[i]//
+        for (int c = 0; c < 16; ++c)
+        {
+            blankStr[c] = view->telnet->screen[line][c];
+        }
+
+        // TODO: set color.
+        draw_opt = view->SetDCColors(&dc, 8, 0);
+
+        if (PluginConfig.BBLStyle == BLACKSTYLE_MOSAIC)
+        {
+            // Author
+            for (int c = 16; c < 28; ++c)  // id max = 12
+            {
+                char tmp = view->telnet->screen[line][c];
+                if ((tmp >= '0' && tmp <= '9') ||
+                    (tmp >= 'A' && tmp <= 'Z') ||
+                    (tmp >= 'a' && tmp <= 'z'))
+                    blankStr[c] = '*';
+                else
+                    break;
+            }
+            // Title
+            for (int c = 32; c < 81; ++c)
+            {
+                char tmp = view->telnet->screen[line][c];
+                if (tmp != ' ')
+                {
+                    blankStr[c] = '*';
+                }
+            }
+        }
+        if (PluginConfig.BBLStyle == BLACKSTYLE_MAPLE)
+        {
+            // Author
+            //for (int c = 16; c < 28; ++c)  // id max = 12
+            {
+                // 黑單旅人
+                const char* author = "\xB6\xC2\xB3\xE6\xAE\xC8\xA4\x48";
+                strncpy(&blankStr[16], author, 8);
+            }
+            // Title
+            //for (int c = 32; c < 81; ++c)
+            {
+                // 黑 本文已經黑單吃掉，口卡口卡口卡
+                const char* title = "\xB6\xC2\x20\xA5\xBB\xA4\xE5\xA4\x77\xB8\x67\xB6\xC2\xB3\xE6\xA6\x59\xB1\xBC\xA1\x41\xA4\x66\xA5\x64\xA4\x66\xA5\x64\xA4\x66\xA5\x64";
+                strncpy(&blankStr[29], title, 33);
+            }
+        }
+    }
+    //static char* blankStr = "                                                                                ";
+    view->ExtTextOut(dc, rc.left, rc.top, draw_opt, rc, blankStr, 80);
+    //view->DrawLine(dc, blankStr, 0, 0, drawy);
+}
+bool CPluginBBL::getInBlackList(std::string id)
+{
+    if (PluginConfig.BahaBlackList)
+    {
+        if (std::find(idList.begin(), idList.end(), id) != idList.end())
+        {
+            return true;
+        }
+    }
+    return false;
+}
+bool CPluginBBL::getInBlackList(int line)
+{
+    if (PluginConfig.BahaBlackList)
+    {
+        if (std::find(idList.begin(), idList.end(), lineTag[line]) != idList.end())
+        {
+            {
+                return true;
+            }
+        }
+    }
+    if (PluginConfig.BBLKeyword)
+    {
+        if (kwHiding[line] == true)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+bool CPluginBBL::chkServerValid(std::string servername)
+{
+    if (std::find(validServerList.begin(), validServerList.end(), servername) != validServerList.end())
+    {
+        return true;
+    }
+    return false;
 }

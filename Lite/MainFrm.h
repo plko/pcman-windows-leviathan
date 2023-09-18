@@ -269,6 +269,21 @@ public:
 	afx_msg void OnInitMenuPopup(CMenu* pPopupMenu,UINT nIndex,BOOL bSysMenu);
 	afx_msg void OnNciku();
 	afx_msg void OnWikipedia();
+    // plugin new msg.
+    afx_msg void OnPluginBBL();
+    afx_msg void OnUpdatePluginBBL(CCmdUI* pCmdUI);
+    afx_msg void OnPluginBBLKW();
+    afx_msg void OnUpdatePluginBBLKW(CCmdUI* pCmdUI);
+    afx_msg void OnPluginBBLAutoQuit();
+    afx_msg void OnUpdatePluginBBLAutoQuit(CCmdUI* pCmdUI);
+    afx_msg void OnPluginBBLOpenIDList();
+    afx_msg void OnPluginBBLOpenKWList();
+    afx_msg void OnPluginBBLStyleDefault();
+    afx_msg void OnUpdatePluginBBLStyleDefault(CCmdUI* pCmdUI);
+    afx_msg void OnPluginBBLStyleMosaic();
+    afx_msg void OnUpdatePluginBBLStyleMosaic(CCmdUI* pCmdUI);
+    afx_msg void OnPluginBBLStyleMaple();
+    afx_msg void OnUpdatePluginBBLStyleMaple(CCmdUI* pCmdUI);
 	//}}AFX_MSG
 
 	void OnFavorite(UINT id);

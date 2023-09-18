@@ -324,6 +324,82 @@ inline bool IsAttrBlink(BYTE attr)
 
 CString AttrToStr(BYTE prevatb, BYTE attr);
 
+// This time write this in TelnetConn, because most function related with it.
+// TODO: Move to another file.
+class CPluginBBL
+{
+private:
+    // const
+    static const int BUF_SIZE = 24;
+    enum
+    {
+        STATE_NONE = 0,
+        STATE_BOARD = 1,
+        STATE_READ = 2,
+    };
+
+    //"編號   日 期  作  者       文  章  標  題"
+    //"編號    日 期 作  者       文  章  標  題"
+    //"(PgUp)(PgDn)(0)($)移動 (/n)搜尋 (C)暫存 ←(q)結束"
+    //"文章選讀  (g)寫得好!"
+    static constexpr const char* inBoardChk1 = "\xBD\x73\xB8\xB9\x20\x20\x20\xA4\xE9\x20\xB4\xC1\x20\x20\xA7\x40\x20\x20\xAA\xCC\x20\x20\x20\x20\x20\x20\x20\xA4\xE5\x20\x20\xB3\xB9\x20\x20\xBC\xD0\x20\x20\xC3\x44";
+    static constexpr const char* inBoardChk2 = "\xBD\x73\xB8\xB9\x20\x20\x20\x20\xA4\xE9\x20\xB4\xC1\x20\xA7\x40\x20\x20\xAA\xCC\x20\x20\x20\x20\x20\x20\x20\xA4\xE5\x20\x20\xB3\xB9\x20\x20\xBC\xD0\x20\x20\xC3\x44";
+    static constexpr const char* inReadingChk1 = "\x28\x50\x67\x55\x70\x29\x28\x50\x67\x44\x6E\x29\x28\x30\x29\x28\x24\x29\xB2\xBE\xB0\xCA\x20\x28\x2F\x6E\x29\xB7\x6A\xB4\x4D\x20\x28\x43\x29\xBC\xC8\xA6\x73\x20\xA1\xF6\x28\x71\x29\xB5\xB2\xA7\xF4";
+    static constexpr const char* inReadingChk2 = "\xA4\xE5\xB3\xB9\xBF\xEF\xC5\xAA\x20\x20\x28\x67\x29\xBC\x67\xB1\x6F\xA6\x6E\x21";
+    //" 作者 "
+    //" 標題 "
+    //" 時間 "
+    static constexpr const char* newPostChk1 = "\x20\xA7\x40\xAA\xCC\x20";
+    static constexpr const char* newPostChk2 = "\x20\xBC\xD0\xC3\x44\x20";
+    static constexpr const char* newPostChk3 = "\x20\xAE\xC9\xB6\xA1\x20";
+    //"※ "
+    //" 作者 "
+    //"※ 引述《"
+    //"《"
+    static constexpr const char* postCheckStr1 = "\xA1\xB0\x20";
+    static constexpr const char* postCheckStr2 = "\x20\xA7\x40\xAA\xCC\x20";
+    static constexpr const char* postCheckStr3 = "\xA1\xB0\x20\xA4\xDE\xAD\x7A\xA1\x6D";
+    static constexpr const char* postCheckStr4 = "\xA1\x6D";
+
+public:
+    enum
+    {
+        BLACKSTYLE_DEFAULT = 0,
+        BLACKSTYLE_MOSAIC = 1,
+        BLACKSTYLE_MAPLE = 2,
+    };
+
+    // Ctor
+    CPluginBBL();
+
+    // member.
+    bool isHiding[BUF_SIZE];            // if line already hided. prevent re-draw.
+    std::string lineTag[BUF_SIZE];      // tag author.
+    std::string rawLine[BUF_SIZE];      // 
+    std::string postAuthor;             // Author id.
+    std::string quoAuthor[BUF_SIZE];    // quote content author.
+    bool kwHiding[BUF_SIZE];            // for keyword
+    bool hidingAllPost;                 // for keyword black
+    std::vector<std::string> idList;    // black id list.
+    std::vector<std::string> kwList;    // black keyword list.
+    int state;                          // bahamut in which state.
+    std::vector<std::string> validServerList;
+
+    // method
+    void resetAll();
+    //void update(LPSTR *screen,long first,long last);
+    void update(CTelnetConn* tconn);
+    void render(CDC &dc, CTermView* view, int line, int drawy);
+    bool getInBlackList(std::string id);
+    bool getInBlackList(int line);
+    bool chkServerValid(std::string ser);
+
+    /*static inline int styleDefault() { return BLACKSTYLE_DEFAULT; }
+    static inline int styleMosaic() { return BLACKSTYLE_MOSAIC; }
+    static inline int styleMaple() { return BLACKSTYLE_MAPLE; }*/
+};
+extern CPluginBBL PluginBBL;
+
 /////////////////////////////////////////////////////////////////////////////
 
 //{{AFX_INSERT_LOCATION}}

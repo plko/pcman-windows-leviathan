@@ -199,6 +199,24 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 
 	ON_NOTIFY_EX(TTN_NEEDTEXT, 0, OnToolTipNeedText)	// For tooltips
 
+    // Plugin call
+    ON_UPDATE_COMMAND_UI(ID_BAHA_BLACKLIST, OnUpdatePluginBBL)
+    ON_COMMAND(ID_BAHA_BLACKLIST, OnPluginBBL)
+    ON_UPDATE_COMMAND_UI(ID_BBL_BLACKKW, OnUpdatePluginBBLKW)
+    ON_COMMAND(ID_BBL_BLACKKW, OnPluginBBLKW)
+    ON_UPDATE_COMMAND_UI(ID_BBL_AUTOQUIT, OnUpdatePluginBBLAutoQuit)
+    ON_COMMAND(ID_BBL_AUTOQUIT, OnPluginBBLAutoQuit)
+    ON_COMMAND(ID_BBL_OPENIDLIST, OnPluginBBLOpenIDList)
+    ON_COMMAND(ID_BBL_OPENKWLIST, OnPluginBBLOpenKWList)
+    // group.
+    ON_UPDATE_COMMAND_UI(ID_BBL_STYLE_DEFAULT, OnUpdatePluginBBLStyleDefault)
+    ON_UPDATE_COMMAND_UI(ID_BBL_STYLE_MOSAIC, OnUpdatePluginBBLStyleMosaic)
+    ON_UPDATE_COMMAND_UI(ID_BBL_STYLE_MAPLE, OnUpdatePluginBBLStyleMaple)
+    ON_COMMAND(ID_BBL_STYLE_DEFAULT, OnPluginBBLStyleDefault)
+    ON_COMMAND(ID_BBL_STYLE_MOSAIC, OnPluginBBLStyleMosaic)
+    ON_COMMAND(ID_BBL_STYLE_MAPLE, OnPluginBBLStyleMaple)
+    //ON_UPDATE_COMMAND_UI(ID_BBL_STYLE_DEFAULT)
+
 	#if defined(_COMBO_)
 	ON_COMMAND(ID_WWWHOME, OnWebHome)
 	ON_COMMAND(ID_ADSHTTP, OnAdsHttp)
@@ -3201,6 +3219,12 @@ void CMainFrame::SwitchToConn(int index)
 	UpdateUI();
 
 	SetWindowText(newcon->name + CMainFrame::window_title);
+    //
+    if (PluginBBL.chkServerValid((LPCTSTR)view.telnet->address.Server()) &&
+        (PluginConfig.BahaBlackList != 0 || PluginConfig.BBLKeyword != 0))
+    {
+        SetWindowText(newcon->name + " - 黑名單稼動中" + CMainFrame::window_title);
+    }
 }
 
 void CMainFrame::OnPrevConn()
@@ -3883,4 +3907,181 @@ void CMainFrame::OnInitMenuPopup(CMenu* pMenu,UINT nIndex,BOOL bSysMenu)
 		pMenu->InsertMenu(1, MF_BYPOSITION, CSearchPluginCollection::ID_TRANSLATION, result);
 	}
 	CFrameWnd::OnInitMenuPopup(pMenu, nIndex, bSysMenu);
+}
+
+void CMainFrame::OnPluginBBL()
+{
+    PluginConfig.BahaBlackList = !PluginConfig.BahaBlackList;
+
+    PluginBBL.idList.clear();
+    if (PluginConfig.BahaBlackList)
+    {
+        // open file.
+        FILE* listFp = fopen("idblacklist.txt", "r");
+        if (listFp == nullptr)
+        {
+            listFp = fopen("idblacklist.txt", "a");
+            if (listFp)
+                fclose(listFp);
+            return;
+        }
+
+        // read line.
+        char buf[256];
+        while (fgets(buf, 256, listFp))
+        {
+            for (int i = 0; i < 256; ++i)
+            {
+                if (buf[i] < '0' || buf[i] > 'z')
+                {
+                    buf[i] = 0;
+                    break;
+                }
+            }
+            // remove not ansi character
+            PluginBBL.idList.push_back(buf);
+        }
+        fclose(listFp);
+    }
+    else
+    {
+        PluginBBL.resetAll();
+    }
+
+    // update title.
+    if (PluginBBL.chkServerValid((LPCTSTR)view.telnet->address.Server()) &&
+        (PluginConfig.BahaBlackList != 0 || PluginConfig.BBLKeyword != 0))
+    {
+        SetWindowText(view.telnet->name + " - 黑名單稼動中" + CMainFrame::window_title);
+    }
+    else
+    {
+        SetWindowText(view.telnet->name + CMainFrame::window_title);
+    }
+}
+
+void CMainFrame::OnUpdatePluginBBL(CCmdUI* pCmdUI)
+{
+    pCmdUI->SetCheck(PluginConfig.BahaBlackList);
+}
+
+void CMainFrame::OnPluginBBLKW()
+{
+    PluginConfig.BBLKeyword = !PluginConfig.BBLKeyword;
+
+    PluginBBL.kwList.clear();
+    if (PluginConfig.BBLKeyword)
+    {
+        // open file.
+        FILE* listFp = fopen("kwblacklist.txt", "r");
+        if (listFp == nullptr)
+        {
+            listFp = fopen("kwblacklist.txt", "a");
+            if (listFp)
+                fclose(listFp);
+            return;
+        }
+
+        // read line.
+        char buf[256];
+        while (fgets(buf, 256, listFp))
+        {
+            for (int i = 0; i < 256; ++i)
+            {
+                if (buf[i] == '\n' || i == 255)
+                {
+                    buf[i] = 0;
+                    break;
+                }
+            }
+            PluginBBL.kwList.push_back(buf);
+        }
+        fclose(listFp);
+    }
+    else
+    {
+        PluginBBL.resetAll();
+    }
+
+    // update title.
+    if (PluginBBL.chkServerValid((LPCTSTR)view.telnet->address.Server()) &&
+        (PluginConfig.BahaBlackList != 0 || PluginConfig.BBLKeyword != 0))
+    {
+        SetWindowText(view.telnet->name + " - 黑名單稼動中" + CMainFrame::window_title);
+    }
+    else
+    {
+        SetWindowText(view.telnet->name + CMainFrame::window_title);
+    }
+}
+
+void CMainFrame::OnUpdatePluginBBLKW(CCmdUI* pCmdUI)
+{
+    pCmdUI->SetCheck(PluginConfig.BBLKeyword);
+}
+
+void CMainFrame::OnPluginBBLAutoQuit()
+{
+    PluginConfig.BBLAutoQuit = !PluginConfig.BBLAutoQuit;
+}
+
+void CMainFrame::OnUpdatePluginBBLAutoQuit(CCmdUI* pCmdUI)
+{
+    pCmdUI->SetCheck(PluginConfig.BBLAutoQuit);
+}
+
+void CMainFrame::OnPluginBBLOpenIDList()
+{
+    // for list file, use txt now.
+    // TODO: use build-in window to setting.
+    FILE* listFp = fopen("idblacklist.txt", "r");
+    if (listFp == nullptr)
+    {
+        listFp = fopen("idblacklist.txt", "a");
+        if (listFp)
+            fclose(listFp);
+    }
+    if (listFp)
+        fclose(listFp);
+
+    ShellExecute(NULL, NULL, "idblacklist.txt", NULL, NULL, SW_SHOWNORMAL);
+}
+
+void CMainFrame::OnPluginBBLOpenKWList()
+{
+    // TODO: use build-in window to setting.
+    FILE* listFp = fopen("kwblacklist.txt", "r");
+    if (listFp == nullptr)
+    {
+        listFp = fopen("kwblacklist.txt", "a");
+        if (listFp)
+            fclose(listFp);
+    }
+    if (listFp)
+        fclose(listFp);
+
+    ShellExecute(NULL, NULL, "kwblacklist.txt", NULL, NULL, SW_SHOWNORMAL);
+}
+
+void CMainFrame::OnUpdatePluginBBLStyleDefault(CCmdUI* pCmdUI)
+{
+    pCmdUI->SetRadio((PluginConfig.BBLStyle == CPluginBBL::BLACKSTYLE_DEFAULT));
+}
+void CMainFrame::OnUpdatePluginBBLStyleMosaic(CCmdUI* pCmdUI)
+{
+    pCmdUI->SetRadio((PluginConfig.BBLStyle == CPluginBBL::BLACKSTYLE_MOSAIC));
+}
+void CMainFrame::OnUpdatePluginBBLStyleMaple(CCmdUI* pCmdUI)
+{
+    pCmdUI->SetRadio((PluginConfig.BBLStyle == CPluginBBL::BLACKSTYLE_MAPLE));
+}
+void CMainFrame::OnPluginBBLStyleDefault()
+{
+    PluginConfig.BBLStyle = CPluginBBL::BLACKSTYLE_DEFAULT;
+}void CMainFrame::OnPluginBBLStyleMosaic()
+{
+    PluginConfig.BBLStyle = CPluginBBL::BLACKSTYLE_MOSAIC;
+}void CMainFrame::OnPluginBBLStyleMaple()
+{
+    PluginConfig.BBLStyle = CPluginBBL::BLACKSTYLE_MAPLE;
 }

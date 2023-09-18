@@ -2209,10 +2209,16 @@ inline void CTermView::DrawScreen(CDC &dc)
 		else
 			pline_selstart = pline_selend = NULL;
 
-		if (AppConfig.old_textout)
-			DrawLineOld(dc, telnet->screen[i], pline_selstart, pline_selend, y);
-		else
-			DrawLine(dc, telnet->screen[i], pline_selstart, pline_selend, y);
+        // NOTE: plugin draw. override original.
+        PluginBBL.render(dc, this, i, y);
+        //
+        if (!(PluginBBL.isHiding[i - telnet->scroll_pos]))
+        {
+            if (AppConfig.old_textout)
+                DrawLineOld(dc, telnet->screen[i], pline_selstart, pline_selend, y);
+            else
+                DrawLine(dc, telnet->screen[i], pline_selstart, pline_selend, y);
+        }
 
 		if (AppConfig.link_underline)
 			DrawLink(dc, telnet->screen[i], telnet->GetLineAttr(i), y);

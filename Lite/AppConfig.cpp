@@ -582,3 +582,13 @@ bool CHistoryLoader::OnDataExchange(bool load)
 	bool ret = DoDataExchange(load, table);
 	return ret;
 }
+
+CPluginConfig PluginConfig;
+
+CPluginConfig::CPluginConfig()
+{
+    BahaBlackList = 0;
+    BBLKeyword = 0;
+    BBLAutoQuit = 0;
+    BBLStyle = 0;
+}

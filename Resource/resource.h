@@ -626,6 +626,16 @@
 #define ID_CONNECT_CLOSE_ALL_OTHERS     33042
 #define IDS_CON_SECURE                  33043
 
+// plugin menu ID // start from 34001.
+#define ID_BAHA_BLACKLIST               34001
+#define ID_BBL_OPENIDLIST               34002
+#define ID_BBL_AUTOQUIT                 34003
+#define ID_BBL_BLACKKW                  34004
+#define ID_BBL_OPENKWLIST               34005
+#define ID_BBL_STYLE_DEFAULT            34101
+#define ID_BBL_STYLE_MOSAIC             34102
+#define ID_BBL_STYLE_MAPLE              34103
+
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED

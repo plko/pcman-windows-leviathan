@@ -197,6 +197,23 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "關於 PCMan (&A)...",          ID_ABOUT
     END
+    POPUP "擴充功能 (&P)"
+    BEGIN
+        POPUP "巴哈姆特黑名單工具 (&B)"
+        BEGIN
+            MENUITEM "啟用巴哈ID黑名單",            ID_BAHA_BLACKLIST
+            MENUITEM "啟用巴哈關鍵字黑名單",        ID_BBL_BLACKKW
+            MENUITEM "自動離開黑名單文章",          ID_BBL_AUTOQUIT
+            MENUITEM "編輯黑名單ID",                ID_BBL_OPENIDLIST
+            MENUITEM "編輯黑名單關鍵字",            ID_BBL_OPENKWLIST
+            POPUP "黑名單樣式(文章列表有效)"
+            BEGIN
+                MENUITEM "全黑 (預設)",             ID_BBL_STYLE_DEFAULT
+                MENUITEM "照字數填充*",             ID_BBL_STYLE_MOSAIC
+                MENUITEM "mapleBBS風味",            ID_BBL_STYLE_MAPLE
+            END
+        END
+    END
 END
 
 

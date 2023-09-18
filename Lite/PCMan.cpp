@@ -317,7 +317,7 @@ BOOL CAboutDlg::OnInitDialog()
 
 	char buf1[0x100];
 
-	wsprintf(buf1, "%s - %d.%d.%d%s (Novus)",
+	wsprintf(buf1, "PCMan Leviathan 0.2.0 Based on %s - %d.%d.%d%s (Novus)",
 			 Version_InternalNameA, Version_Major, Version_Minor, Version_PatchLevel, Version_Append);
 
 	GetDlgItem(IDC_VERSION)->SetWindowText(buf1);
