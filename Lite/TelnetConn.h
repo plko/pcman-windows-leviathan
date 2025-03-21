@@ -387,6 +387,8 @@ public:
 
     // method
     void resetAll();
+    void loadBLIDList();
+    void loadBLKWList();
     //void update(LPSTR *screen,long first,long last);
     void update(CTelnetConn* tconn);
     void render(CDC &dc, CTermView* view, int line, int drawy);

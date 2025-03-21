@@ -3914,49 +3914,35 @@ void CMainFrame::OnPluginBBL()
     PluginConfig.BahaBlackList = !PluginConfig.BahaBlackList;
 
     PluginBBL.idList.clear();
+    PluginBBL.resetAll();
     if (PluginConfig.BahaBlackList)
     {
-        // open file.
-        FILE* listFp = fopen("idblacklist.txt", "r");
-        if (listFp == nullptr)
-        {
-            listFp = fopen("idblacklist.txt", "a");
-            if (listFp)
-                fclose(listFp);
-            return;
-        }
-
-        // read line.
-        char buf[256];
-        while (fgets(buf, 256, listFp))
-        {
-            for (int i = 0; i < 256; ++i)
-            {
-                if (buf[i] < '0' || buf[i] > 'z')
-                {
-                    buf[i] = 0;
-                    break;
-                }
-            }
-            // remove not ansi character
-            PluginBBL.idList.push_back(buf);
-        }
-        fclose(listFp);
+        PluginBBL.loadBLIDList();
     }
-    else
+    if (PluginConfig.BBLKeyword)
+    {
+        PluginBBL.loadBLKWList();
+    }
+    
+    /*else
     {
         PluginBBL.resetAll();
-    }
+    }*/
 
     // update title.
-    if (PluginBBL.chkServerValid((LPCTSTR)view.telnet->address.Server()) &&
-        (PluginConfig.BahaBlackList != 0 || PluginConfig.BBLKeyword != 0))
+    if (view.telnet)
     {
-        SetWindowText(view.telnet->name + " - 黑名單稼動中" + CMainFrame::window_title);
-    }
-    else
-    {
-        SetWindowText(view.telnet->name + CMainFrame::window_title);
+        PluginBBL.update(view.telnet);
+        view.telnet->view->InvalidateRect(FALSE);
+        if (PluginBBL.chkServerValid((LPCTSTR)view.telnet->address.Server()) &&
+            (PluginConfig.BahaBlackList != 0 || PluginConfig.BBLKeyword != 0))
+        {
+            SetWindowText(view.telnet->name + " - 黑名單稼動中" + CMainFrame::window_title);
+        }
+        else
+        {
+            SetWindowText(view.telnet->name + CMainFrame::window_title);
+        }
     }
 }
 
@@ -3970,48 +3956,34 @@ void CMainFrame::OnPluginBBLKW()
     PluginConfig.BBLKeyword = !PluginConfig.BBLKeyword;
 
     PluginBBL.kwList.clear();
+    PluginBBL.resetAll();
     if (PluginConfig.BBLKeyword)
     {
-        // open file.
-        FILE* listFp = fopen("kwblacklist.txt", "r");
-        if (listFp == nullptr)
-        {
-            listFp = fopen("kwblacklist.txt", "a");
-            if (listFp)
-                fclose(listFp);
-            return;
-        }
-
-        // read line.
-        char buf[256];
-        while (fgets(buf, 256, listFp))
-        {
-            for (int i = 0; i < 256; ++i)
-            {
-                if (buf[i] == '\n' || i == 255)
-                {
-                    buf[i] = 0;
-                    break;
-                }
-            }
-            PluginBBL.kwList.push_back(buf);
-        }
-        fclose(listFp);
+        PluginBBL.loadBLKWList();
     }
-    else
+    if (PluginConfig.BahaBlackList)
+    {
+        PluginBBL.loadBLIDList();
+    }
+    /*else
     {
         PluginBBL.resetAll();
-    }
+    }*/
 
     // update title.
-    if (PluginBBL.chkServerValid((LPCTSTR)view.telnet->address.Server()) &&
-        (PluginConfig.BahaBlackList != 0 || PluginConfig.BBLKeyword != 0))
+    if (view.telnet)
     {
-        SetWindowText(view.telnet->name + " - 黑名單稼動中" + CMainFrame::window_title);
-    }
-    else
-    {
-        SetWindowText(view.telnet->name + CMainFrame::window_title);
+        PluginBBL.update(view.telnet);
+        view.telnet->view->InvalidateRect(FALSE);
+        if (PluginBBL.chkServerValid((LPCTSTR)view.telnet->address.Server()) &&
+            (PluginConfig.BahaBlackList != 0 || PluginConfig.BBLKeyword != 0))
+        {
+            SetWindowText(view.telnet->name + " - 黑名單稼動中" + CMainFrame::window_title);
+        }
+        else
+        {
+            SetWindowText(view.telnet->name + CMainFrame::window_title);
+        }
     }
 }
 

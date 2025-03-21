@@ -2396,17 +2396,25 @@ inline void CTermView::DrawBlink()
 	LPSTR* lastline = curline + telnet->site_settings.lines_per_page;
 	int y = top_margin;
 	CFont* fold = dc.SelectObject(&fnt);
-
-	if (AppConfig.old_textout)
-	{
-		for (;curline < lastline; curline++, y += lineh)
-			DrawLineBlinkOld(dc, *curline, y);
-	}
-	else
-	{
-		for (;curline < lastline; curline++, y += lineh)
-			DrawLineBlink(dc, *curline, y);
-	}
+    //if (!(PluginBBL.isHiding[i - telnet->scroll_pos]))
+    {
+        if (AppConfig.old_textout)
+        {
+            for (;curline < lastline; curline++, y += lineh)
+            {
+                if (!(PluginBBL.isHiding[curline - (telnet->screen+telnet->scroll_pos)]))
+                    DrawLineBlinkOld(dc, *curline, y);
+            }
+        }
+        else
+        {
+            for (;curline < lastline; curline++, y += lineh)
+            {
+                if (!(PluginBBL.isHiding[curline - (telnet->screen + telnet->scroll_pos)]))
+                    DrawLineBlink(dc, *curline, y);
+            }
+        }
+    }
 	dc.SelectObject(fold);
 }
 

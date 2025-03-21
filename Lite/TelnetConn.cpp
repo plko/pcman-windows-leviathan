@@ -2272,6 +2272,63 @@ void CPluginBBL::resetAll()
     idList.clear();
     kwList.clear();
 }
+void CPluginBBL::loadBLIDList()
+{
+    // open file.
+    FILE* listFp = fopen("idblacklist.txt", "r");
+    if (listFp == nullptr)
+    {
+        listFp = fopen("idblacklist.txt", "a");
+        if (listFp)
+            fclose(listFp);
+        return;
+    }
+
+    // read line.
+    char buf[256];
+    while (fgets(buf, 256, listFp))
+    {
+        for (int i = 0; i < 256; ++i)
+        {
+            if (buf[i] < '0' || buf[i] > 'z')
+            {
+                buf[i] = 0;
+                break;
+            }
+        }
+        // remove not ansi character
+        PluginBBL.idList.push_back(buf);
+    }
+    fclose(listFp);
+}
+void CPluginBBL::loadBLKWList()
+{
+    // open file.
+    FILE* listFp = fopen("kwblacklist.txt", "r");
+    if (listFp == nullptr)
+    {
+        listFp = fopen("kwblacklist.txt", "a");
+        if (listFp)
+            fclose(listFp);
+        return;
+    }
+
+    // read line.
+    char buf[256];
+    while (fgets(buf, 256, listFp))
+    {
+        for (int i = 0; i < 256; ++i)
+        {
+            if (buf[i] == '\n' || i == 255)
+            {
+                buf[i] = 0;
+                break;
+            }
+        }
+        kwList.push_back(buf);
+    }
+    fclose(listFp);
+}
 void CPluginBBL::update(CTelnetConn* tconn)
 {
     if (PluginConfig.BahaBlackList == 0 &&
